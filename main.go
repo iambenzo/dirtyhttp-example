@@ -1,38 +1,77 @@
 package main
 
 import (
-	"database/sql"
+	"encoding/json"
+	"fmt"
 	"net/http"
 
-	// "github.com/m1/go-generate-password/generator"
 	"github.com/iambenzo/dirtyhttp"
 )
 
 var api dirtyhttp.Api = dirtyhttp.Api{}
 
 // Handler/Controller struct
-type helloHandler struct{}
+type httpHandler struct{}
 
 // Implement http.Handler
 //
 // Your logic goes here
-func (hey helloHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (hey httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-
-        // get the URL query parameters
+		// get the URL query parameters
 		var queryParameters = r.URL.Query()
 
 		if queryParameters.Get("id") != "" {
-            dirtyhttp.EncodeResponseAsJSON(getUserById(queryParameters.Get("id"), r.Context()), w)
-            return
-		} else if queryParameters.Get("email") != "" {
-            dirtyhttp.EncodeResponseAsJSON(getUserByEmail(queryParameters.Get("email"), r.Context()), w)
-            return
+            v, ok := getUserById(queryParameters.Get("id"))
+            if ok {
+                dirtyhttp.EncodeResponseAsJSON(v, w)
+                return
+            } else {
+				api.HttpErrorWriter.WriteError(w, http.StatusBadRequest, "User does not exist")
+				return
+            }
 		} else {
-            dirtyhttp.EncodeResponseAsJSON(getAllUsers(r.Context()), w)
-            return
+			dirtyhttp.EncodeResponseAsJSON(getAllUsers(), w)
+			return
 		}
+
+	case http.MethodDelete:
+		// get the URL query parameters
+		var queryParameters = r.URL.Query()
+
+		if queryParameters.Get("id") != "" {
+			if deleteUser(queryParameters.Get("id")) {
+				w.WriteHeader(http.StatusNoContent)
+				return
+			} else {
+				api.HttpErrorWriter.WriteError(w, http.StatusBadRequest, "User does not exist")
+				return
+			}
+		} else {
+			api.HttpErrorWriter.WriteError(w, http.StatusBadRequest, "Please include an 'id' parameter")
+			return
+		}
+
+	case http.MethodPost:
+		// do stuff
+		d := json.NewDecoder(r.Body)
+		var user User
+		err := d.Decode(&user)
+		if err != nil {
+			api.Logger.Error(fmt.Sprintf("%v", err))
+			api.HttpErrorWriter.InternalServerError(w, "Unable to parse request body")
+			return
+		}
+
+		// save the data
+		u, err := createUser(user)
+		if err != nil {
+			api.Logger.Error(fmt.Sprintf("%v", err))
+			api.HttpErrorWriter.InternalServerError(w, "Unable to create user")
+			return
+		}
+		dirtyhttp.EncodeResponseAsJSON(u, w)
 
 	default:
 		// Write a timestamped log entry
@@ -44,26 +83,13 @@ func (hey helloHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getDbConnection(cnf *dirtyhttp.EnvConfig) *sql.DB {
-	var db *sql.DB
-	var err error
-
-	db, err = sql.Open("sqlite3", "./data.sqlite")
-
-	if err != nil {
-		api.Logger.Fatal("Couldn't connect to database")
-	}
-
-	return db
-}
-
 func main() {
 	// Initialisation
 	api.Init()
 
 	// Register a handler
-	hello := &helloHandler{}
-	api.RegisterHandler("/", *hello)
+	h := &httpHandler{}
+	api.RegisterHandler("/", *h)
 
 	// Go, baby, go!
 	api.StartService()
