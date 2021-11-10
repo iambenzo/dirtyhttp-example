@@ -1,0 +1,21 @@
+# Builder image
+FROM golang:alpine AS build
+RUN apk update && apk add --no-cache ca-certificates && update-ca-certificates
+WORKDIR /app
+
+# Download our dependencies
+COPY go.mod ./
+COPY go.sum ./
+RUN go mod download
+
+COPY *.go ./
+
+# Build a statically linked binary
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /dirtyhttp-example
+
+# Super small runtime base image
+FROM scratch
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=build /dirtyhttp-example /dirtyhttp-example
+EXPOSE 8080
+ENTRYPOINT ["/dirtyhttp-example"]

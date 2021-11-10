@@ -1,0 +1,17 @@
+# Full fat build
+
+# Use Alpine for its small footprint
+FROM golang:alpine
+WORKDIR /app
+
+# Download our dependencies
+COPY go.mod ./
+COPY go.sum ./
+RUN go mod download
+
+# Build the application binary
+COPY *.go ./
+RUN go build -o /dirtyhttp-example
+
+EXPOSE 8080
+CMD [ "/dirtyhttp-example" ]
