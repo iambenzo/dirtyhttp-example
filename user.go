@@ -42,9 +42,11 @@ func getAllUsers() []User {
 func getUserById(id string) (User, bool) {
 	// get the value if it's present
 	v, ok := fakeDb[id]
-    return v, ok
+	return v, ok
 }
 
+// Create a new user. Generates an ID and Password for the User
+// before saving the User to our DB
 func createUser(u User) (User, error) {
 	// Generate an ID for the user
 	u.Id = strconv.Itoa(newId)
@@ -76,11 +78,30 @@ func createUser(u User) (User, error) {
 	u.PassProfile = newPass
 
 	fakeDb[u.Id] = u
-    return u, nil
+	return u, nil
 }
 
-func updateUser(u *User) *User {
-	return u
+// Update an existing user in the DB
+func updateUser(id string, u *User) (*User, error) {
+	// Check the user exists
+	v, ok := fakeDb[id]
+
+	if ok {
+		v.Email = u.Email
+		v.AccountEnabled = u.AccountEnabled
+		v.DisplayName = u.DisplayName
+		v.GivenName = u.GivenName
+		v.Surname = u.Surname
+		v.CompanyName = u.CompanyName
+
+		fakeDb[id] = v
+
+		return u, nil
+
+	} else {
+		return &User{}, errors.New("User doesn't exist")
+	}
+
 }
 
 // Delete a user if it exists

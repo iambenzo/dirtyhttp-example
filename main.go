@@ -15,7 +15,7 @@ type httpHandler struct{}
 
 // Implement http.Handler
 //
-// Your logic goes here
+// Logic goes here
 func (hey httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
@@ -23,16 +23,45 @@ func (hey httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		var queryParameters = r.URL.Query()
 
 		if queryParameters.Get("id") != "" {
-            v, ok := getUserById(queryParameters.Get("id"))
-            if ok {
-                dirtyhttp.EncodeResponseAsJSON(v, w)
-                return
-            } else {
+			v, ok := getUserById(queryParameters.Get("id"))
+			if ok {
+				dirtyhttp.EncodeResponseAsJSON(v, w)
+				return
+			} else {
 				api.HttpErrorWriter.WriteError(w, http.StatusBadRequest, "User does not exist")
 				return
-            }
+			}
 		} else {
 			dirtyhttp.EncodeResponseAsJSON(getAllUsers(), w)
+			return
+		}
+
+	case http.MethodPut:
+		// get the URL query parameters
+		var queryParameters = r.URL.Query()
+
+		if queryParameters.Get("id") != "" {
+			// Get user object from request body
+			d := json.NewDecoder(r.Body)
+			var user User
+			err := d.Decode(&user)
+			if err != nil {
+				api.Logger.Error(fmt.Sprintf("%v", err))
+				api.HttpErrorWriter.InternalServerError(w, "Unable to parse request body")
+				return
+			}
+
+			// Update our DB
+			u, err := updateUser(queryParameters.Get("id"), &user)
+			if err != nil {
+				api.HttpErrorWriter.InternalServerError(w, "User doesn't exist")
+			}
+
+			dirtyhttp.EncodeResponseAsJSON(u, w)
+			return
+
+		} else {
+			api.HttpErrorWriter.BadParameters(w, "id")
 			return
 		}
 
@@ -54,7 +83,7 @@ func (hey httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 	case http.MethodPost:
-		// do stuff
+		// Get user object from request body
 		d := json.NewDecoder(r.Body)
 		var user User
 		err := d.Decode(&user)
