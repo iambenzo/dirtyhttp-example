@@ -28,7 +28,7 @@ func (hey httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				dirtyhttp.EncodeResponseAsJSON(v, w)
 				return
 			} else {
-				api.HttpErrorWriter.WriteError(w, http.StatusBadRequest, "User does not exist")
+				api.HttpErrorWriter.BadRequest(w, "User does not exist")
 				return
 			}
 		} else {
@@ -74,7 +74,7 @@ func (hey httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusNoContent)
 				return
 			} else {
-				api.HttpErrorWriter.WriteError(w, http.StatusBadRequest, "User does not exist")
+				api.HttpErrorWriter.BadRequest(w, "User does not exist")
 				return
 			}
 		} else {
@@ -94,13 +94,7 @@ func (hey httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// save the data
-		u, err := createUser(user)
-		if err != nil {
-			api.Logger.Error(fmt.Sprintf("%v", err))
-			api.HttpErrorWriter.InternalServerError(w, "Unable to create user")
-			return
-		}
-		dirtyhttp.EncodeResponseAsJSON(u, w)
+		dirtyhttp.EncodeResponseAsJSON(createUser(user), w)
 
 	default:
 		// Write a timestamped log entry
