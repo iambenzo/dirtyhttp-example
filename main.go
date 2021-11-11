@@ -108,12 +108,15 @@ func (hey httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	// Initialisation
-	api.Init()
+    // Use custom config to remove auth
+	config := dirtyhttp.EnvConfig{}
+    config.ApiPort = "8080" // change port here
+    api.InitWithConfig(&config)
 
 	// Register a handler
 	h := &httpHandler{}
 	api.RegisterHandler("/", *h)
 
 	// Go, baby, go!
-	api.StartService()
+    api.StartServiceNoAuth()
 }
