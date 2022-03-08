@@ -16,7 +16,7 @@ type httpHandler struct{}
 // Implement http.Handler
 //
 // Logic goes here
-func (hey httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		// get the URL query parameters
@@ -108,15 +108,15 @@ func (hey httpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	// Initialisation
-    // Use custom config to remove auth
+	// Use custom config to remove auth
 	config := dirtyhttp.EnvConfig{}
-    config.ApiPort = "8080" // change port here
-    api.InitWithConfig(&config)
+	config.ApiPort = "8080" // change port here
+	api.InitWithConfig(&config)
 
 	// Register a handler
 	h := &httpHandler{}
 	api.RegisterHandler("/", *h)
 
 	// Go, baby, go!
-    api.StartServiceNoAuth()
+	api.StartServiceNoAuth()
 }
